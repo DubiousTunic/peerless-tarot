@@ -1,20 +1,38 @@
+//maybe sell this software
+
 $(document).ready(function(){
-  $(".cards").hide();
-  $("#incoming").hide();
-  $(".draw").hide();
-  $(".query").hide();
-  $(".query_submission").hide();
-  $("#awaiting_query").hide();
-  $("#discovered_query").hide();
-  $(".connection").hide();
-  $("#awaiting").hide();
-  $("#connected").hide()
-  $(".interpretation").hide();
-  $(".final").hide();
+  ANCHOR.route("#home");
+  reset();
+
+  function reset(){
+    $(".key").empty();
+    $(".cards").hide();
+    $("#incoming").hide();
+    $(".draw").hide();
+    $(".query").hide();
+    $(".query_submission").hide();
+    $("#awaiting_query").hide();
+    $("#discovered_query").hide();
+    $(".connection").hide();
+    $("#awaiting").hide();
+    $("#connected").hide()
+    $(".interpretation").hide();
+    $(".final").hide();
+    $(".magick_connecting").hide();
+    $(".oracle form button").prop("disabled", false);
+    $(".interpretation_button").hide();
+  }
+
+$(".ANCHOR").click(function(e){
+  e.preventDefault();
+  reset();
+})
+
+$(".home").click(function(e){
+  ANCHOR.route("#home");
+})
 
 ANCHOR.load();
-
-//damned
 
 function assembleSpread(threeThreeThree){
   console.log("HERE");
@@ -55,7 +73,9 @@ function assembleSpread(threeThreeThree){
   $("#data_1 #key_1").css({'transform' : 'rotate('+ (Math.floor(Math.random() * 8) - 8) +'deg)'})
   $("#data_1 #key_2").css({'transform' : 'rotate('+ (Math.floor(Math.random() * 8) - 8) +'deg)'})
   $("#data_1 #key_3").css({'transform' : 'rotate('+ (Math.floor(Math.random() * 8) - 8) +'deg)'})
-  $(".interpretation").fadeIn(777);
+  if(ANCHOR.page() === "oracle")
+    $(".interpretation").fadeIn(777);
+    $(".interpretation_button").fadeIn(777)
   $(".final").show();
 }
 
@@ -67,6 +87,16 @@ var p;
 
 $("form").submit(function(e){
   e.preventDefault();
+  $(".key").empty();
+  $(".oracle form button").prop("disabled", true);
+
+  try{
+    p.destroy();
+  }
+  catch{
+
+  }
+
   p = new SimplePeer({ 
     initiator: true,
     config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }] },
@@ -76,6 +106,8 @@ $("form").submit(function(e){
   })
 
   var tripcode = $("#tripcode").val();
+
+ 
   p.on('connect', () => {
     console.log('CONNECT')
     $("#awaiting").hide();
@@ -86,8 +118,8 @@ $("form").submit(function(e){
 
     $(".draw").click(function(e){
       e.preventDefault();
-      $(".interpretation").empty();
-      $(".key").empty();
+      $(".interpretation").val("");
+      $.post("/ping"); //resets timer of 5 minutes of inactivity
       threeThreeThreeSpread(function(err, result){
         console.log(result);
         var threeThreeThree = result;
@@ -98,7 +130,7 @@ $("form").submit(function(e){
     })
   })
 
-  $(".interpretation").change(function(){
+  $(".interpretation_button").click(function(){
     p.send($(".interpretation").val());
   })
 
@@ -118,17 +150,21 @@ $("form").submit(function(e){
    $.post("/initiate", {sequence : JSON.stringify(data), trips : encodeURIComponent(tripcode)}, function(data){
       $(".connection").show();
       $("#awaiting").fadeIn();
+      $(".oracle h2").text(data.tripcode);
       var interval = setInterval(function(){
         $.get("/hail/" + encodeURIComponent(tripcode), function(data){
           if(data){            
             p.signal(JSON.parse(data.sequence));
             clearInterval(interval); 
+            //connection established, remove tripcode from db
+            $.post("/established/" + encodeURIComponent(tripcode), function(data){
+
+            })
           }
         })
       },3333)
       getReaders();
-    })   
-
+    })
     
   })
 
@@ -146,6 +182,7 @@ document.querySelector('form').addEventListener('submit', ev => {
 $(".peer").click(function(e){
   e.preventDefault();
   $(".oracles").fadeIn(2000);
+  getReaders();
 })
 
 setInterval(function(){
@@ -163,14 +200,17 @@ function getReaders(){
     data.tripcodes.forEach(function(tripcode){
       var li = document.createElement("li");
 
-      $(li).append("<a class='magick' href='#magick?tripcode=" + escape(tripcode) + "'>" + tripcode + "</a>");
+      $(li).append("<a class='magick_li' href='#magick?tripcode=" + encodeURIComponent(tripcode) + "'>" + tripcode + "</a>");
       //li != law ACOLYTE
       $(".readers").append(li);
-      $(".magick").click(function(e){
+      $(".magick_li").click(function(e){
         e.preventDefault();
         //retrieve sequence
-        $("#oracles").hide();
-        var tripcode = encodeURIComponent($(this).text());
+        ANCHOR.route($(this).attr("href"));
+        var tripcode = ANCHOR.getParams().tripcode;
+        $(".magick h2").text(tripcode);
+        $(".magick_connecting").show();
+        tripcode = encodeURIComponent(tripcode);
         $.get("/sequence/" + tripcode, function(data){
           //send signal
           p = new SimplePeer({
@@ -186,7 +226,6 @@ function getReaders(){
 
           var sequence = data.sequence;
           p.on('signal', data=>{
-
             console.log("MAGICK SIGNAL SENT");
             $.post("/magick", {sequence : JSON.stringify(data), tripcode : encodeURIComponent(tripcode)}, function(data){
               console.log("MAGICK SIGNAL SUCCESS");
@@ -196,13 +235,17 @@ function getReaders(){
 
           p.on('connect', () => {
             console.log('CONNECT')   
-            $(".query").fadeIn(333);
-
+            $(".query").fadeIn(333);            
+            $(".magick_connecting").fadeOut(100);
               $("#query").click(function(e){
                 e.preventDefault();
                 console.log($(".query input").val())
                 var query = $(".query input").val();
                 p.send(query);
+                $(".query input").hide();
+                $(".query button").hide();
+                $("#query_submitted").show();
+                $("#query_submitted").text(query);
               })         
           })
 
