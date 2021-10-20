@@ -51,6 +51,11 @@ header{
 	height: 123px;
 }
 
+h2{
+	font-size: 18px;
+	padding: 4px;
+}
+
 .menu li{
 	float: left;
 	padding: 33px;
@@ -116,10 +121,20 @@ h1{
 	float: left;
 }
 
+.interpretation{
+	height: 180px;
+	width: 333px;
+}
+
+.final span{
+	height: 180px;
+	width: 333px;
+	display: inline-block;
+}
 
 #data_1{
-	top: 33%;
-	left: 33%;
+	
+	left: 0;
 }
 
 #data_2{
