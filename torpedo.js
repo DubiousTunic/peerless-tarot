@@ -1,22 +1,45 @@
 const express = require('express')
-const redis = require('redis');
 const app = express()
-const tripcode = require('tripcode');
-const path = require('path')
-const { check, validationResult } = require('express-validator');
 const port = 3000
-const bodyParser= require('body-parser')
+
+//4chan tripcode generator
+const tripcode = require('tripcode');
+
+//sanitization and validation
+const { check, validationResult } = require('express-validator');
+//decodes from validator
 const he = require('he');
+
+//other handlers
+const path = require('path')
+const bodyParser= require('body-parser')
+
 
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({ extended: true }))
 
-const client = redis.createClient();
-
 // Express Middleware for serving static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+/*
+  this is the only db, it is local and lists readers in this format:
+  readers { 
+    "tripcode" {
+      sequence : "initiatorSequence",
+      hail : "peerSequence"        
+    },
+    "tripcode2" { etc.
+  }
+*/
 var readers = {};
+
+/*
+  After 5 minutes of inactivity delete reader tripcode from db
+*/
+app.post("/ping", function(req,res){
+  resetTimer();
+  res.end();
+})
 
 function resetTimer(trips){
   var reader = readers[trips]
@@ -27,9 +50,11 @@ function resetTimer(trips){
 }
 
 
+//server responses in order of client operations
+
 /*
-  A reader initiates a data-channel
-  Request sequence saved in redis db
+  An Oracle initiates a data-channel
+  Signal "sequence" saved to oracle tripcode in :readers
 */
 app.post("/initiate", [check("trips").not().isEmpty().trim().escape(), check("sequence").not().isEmpty().custom(value => {
     try {
@@ -49,35 +74,33 @@ app.post("/initiate", [check("trips").not().isEmpty().trim().escape(), check("se
     readers[trips] = {};
     readers[trips].sequence = JSON.parse(he.decode(req.body.sequence));
     resetTimer(trips); 
-    res.end();
+    res.json({tripcode : trips});
 })
 
-app.get("/hail/:tripcode", [check("tripcode").not().isEmpty().trim().escape()], function(req,res){
+/*
+  Peer retrieves sequence from initial Oracle; 
+  sequence entered on Peer clientside
+*/
+app.get("/sequence/:tripcode", [check("tripcode").not().isEmpty().trim().escape()], function(req,res){
   const errors = validationResult(req);
    if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-  var trips = tripcode(he.decode(req.params.tripcode));
-  if(readers[trips] && readers[trips].hail){
-    res.json({sequence : JSON.stringify(readers[trips].hail)});
-  }
-  else{
-    res.end();
-  }
+
+  var tripcode = he.decode(req.params.tripcode);
+  
+  console.log("TRIPCODE: " + tripcode);
+
+  res.json({sequence : JSON.stringify(readers[tripcode].sequence)});
 })
 
 /*
-  A querent joins a data-channel
-  Multiple querents can join a data-channel (by God I hope this is true)
+  Oracle sequence posted to peer client; 
+  magick established; 
+  final sequence for Oracle generated, saved to .hail property of :readers.tripcode
+  (so to get the Peer response sequence in your Oracle it's readers.tripcode.hail)
+  The hail property is longpolled by the Oracle after initiate is called from the client
 */
-app.post("/acolyte", [check("trips").not().isEmpty().trim().escape()], function(req,res){
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-   
-})
-
 app.post("/magick", [check("tripcode").not().isEmpty().trim().escape(), check("sequence").not().isEmpty().custom(value => {
     try {
       JSON.parse(value);
@@ -98,25 +121,46 @@ app.post("/magick", [check("tripcode").not().isEmpty().trim().escape(), check("s
     res.end();
 })
 
-
-app.get("/sequence/:tripcode", [check("tripcode").not().isEmpty().trim().escape()], function(req,res){
+/*
+  Oracle longpolls for Peer response sequence, stored in :readers[tripcode].hail
+*/
+app.get("/hail/:tripcode", [check("tripcode").not().isEmpty().trim().escape()], function(req,res){
   const errors = validationResult(req);
    if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-
-  var tripcode = he.decode(req.params.tripcode);
-  
-  console.log("TRIPCODE: " + tripcode);
-
-  res.json({sequence : JSON.stringify(readers[tripcode].sequence)});
+  var trips = tripcode(he.decode(req.params.tripcode));
+  if(readers[trips] && readers[trips].hail){
+    res.json({sequence : JSON.stringify(readers[trips].hail)});
+  }
+  else{
+    res.end();
+  }
 })
 
+/* 
+  Connection established, remove tripcode from :readers
+*/
+app.post("/established/:tripcode", [check("tripcode").not().isEmpty().trim().escape()], function(req,res){
+  const errors = validationResult(req);
+   if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  var trips = tripcode(he.decode(req.params.tripcode));
+  if(readers[trips]){
+    delete readers[trips];
+  }
+  res.end();
+})
+
+/*
+  #peer view on clientside calls this
+  generates a list of Oracles (as tripcodes) from :readers
+*/
 app.get("/readers", function(req,res){
   console.log(Object.keys(readers));
   res.json({tripcodes : Object.keys(readers) });
 })
-
 
 app.all('*', (req, res) => {
   res.sendFile(__dirname + '/public/thought.html')
