@@ -10,7 +10,7 @@
   <body>
   
     <header>
-      <h1><a href="#home">Peerless Tarot</a></h1>
+      <h1><a href="#home" class="ANCHOR home">Peerless Tarot</a></h1>
       <ul class="menu">
         <li><a class="ANCHOR oracle" href="#initiate">Oracle</a></li>
         <li><a class="ANCHOR peer" href="#acolyte">Peer</a></li>
@@ -30,42 +30,42 @@
         </div>
       </div>
       <div class="magick ANCHOR_partial">
-        <span class="magick_connecting">Connecting...</span>&nbsp;<h2></h2>
-        <div class="query">
+        <span class="magick_connecting" class="hidden">Connecting...</span>&nbsp;<h2></h2><br><br>
+        <div class="query" class="hidden">
         Query:
           <input type="text" placeholder="Query"><button id="query">Submit</button>
           <span id="query_submitted"></span>
         </div>
         <br>
-        <div class="final">
+        <div class="final" class="hidden">
           <b>Interpretation:</b>
-          <br>
+          <br><br>
           <span></span>
         </div>
       </div>
       <div class="oracle ANCHOR_partial">
         <h2></h2>
-        <br>
+        <br><br>
         <form>
-          <input id="tripcode" placeholder="tripcode (for ID)">
+          <input id="tripcode" type="password" placeholder="tripcode (for ID)">
           <button type="submit">Initiate</button>
         </form>
         <br>
-        <div class="connection">
+        <div class="connection hidden">
           <span id="awaiting">Awaiting Peer</span>
           <span id="connected">Peer Connected</span>
         </div>
         <br>
-        <div class="query_submission">
+        <div class="query_submission hidden">
           <span id="awaiting_query">Awaiting Query</span>
           <span id="discovered_query">Query: </span>
           <span id="query_submission"></span>
         </div>
         <br>
-        <button class="draw">Draw</button>
+        <button class="draw hidden">Draw</button>
         <br><br>
-        <textarea class="interpretation" maxlength = "256" placeholder="interpretation">
-        </textarea><button class="interpretation_button">Send Oracle</button>
+        <textarea class="interpretation hidden" maxlength = "256" placeholder="interpretation">
+        </textarea><button class="interpretation_button hidden">Send Oracle</button>
       </div>
       <div class="reading">
       <div class="data" id="data_1">
@@ -85,7 +85,7 @@
     </div>
   </body>
   <footer>
-  	<div class="cards">
+  	<div class="cards hidden">
 	<div id="tarot_0" class="The Fool">
 1
 t                                          . ..  tttttttttt @             t
