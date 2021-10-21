@@ -62,15 +62,22 @@ h2{
 	font-size: 16px;
 }
 
+.menu li a{
+	color: goldenrod;
+}
+
 .menu li:first{
 	border-right: 1px solid #CDCDCD;
 }
 
 h1{
+	padding: 13px;
+}
+
+h1 a{
 	font-size: 36px;
 	font-family: Arial;
 	color: CRIMSON;
-	padding: 13px;
 }
 
 .ANCHOR_partial{
@@ -132,6 +139,10 @@ h1{
 	display: inline-block;
 }
 
+.hidden{
+	display: none;
+}
+
 #data_1{
 	
 	left: 0;
@@ -155,5 +166,9 @@ h1{
 
 	 .key_holder{
 	 	padding: 3px;
+	 }
+
+	 body{
+	 	width: 100%;
 	 }
 }
