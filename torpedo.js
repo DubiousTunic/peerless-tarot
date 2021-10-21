@@ -36,17 +36,18 @@ var readers = {};
 /*
   After 5 minutes of inactivity delete reader tripcode from db
 */
-app.post("/ping", function(req,res){
+app.post("/pong", function(req,res){
   resetTimer();
   res.end();
 })
 
+//the timer keeps going and resets the same name
 function resetTimer(trips){
   var reader = readers[trips]
   clearTimeout(reader.timer);
   reader.timer = setTimeout(function(){
     delete readers[trips];
-  }, 300000)
+  }, 466200)
 }
 
 
@@ -71,6 +72,11 @@ app.post("/initiate", [check("trips").not().isEmpty().trim().escape(), check("se
     }
     var trips = tripcode(he.decode(req.body.trips));
     console.log(trips);
+
+    //clear the timeout for duplicate entry
+    if(readers[trips])
+      clearTimeout(readers[trips].timer);
+
     readers[trips] = {};
     readers[trips].sequence = JSON.parse(he.decode(req.body.sequence));
     resetTimer(trips); 
